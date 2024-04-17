@@ -7,7 +7,7 @@ version: 2
 
 # Personal info
 name: Guillaume Payeur
-title: Senior Network System Administrator
+title: Physics Graduate Student
 email: guillaume.payeur@mail.mcgill.ca
 # website: www.github.com/sproogen/resume-theme
 
@@ -30,10 +30,10 @@ linkedin_username: guillaume-payeur-426b061b0
 orcid_username: 0000-0002-0997-4827
 
 # Additional icon links
-additional_links:
-- title: itsgoingto.be
-  icon: fas fa-globe
-  url: https://www.itsgoingto.be
+# additional_links:
+# - title: itsgoingto.be
+  # icon: fas fa-globe
+  # url: https://www.itsgoingto.be
 # - title: another link
 #   icon: font awesome brand icon name (eg. fab fa-twitter) (https://fontawesome.com/icons?d=gallery&m=free)
 #   url: Link url (eg. https://google.com)
@@ -48,7 +48,7 @@ additional_links:
 # about_title: About Me
 about_profile_image: images/profile.jpg
 about_content: | # this will include new lines to allow paragraphs
-  Hi! I'm Guillaume, a graduate student in physics at McGill University, under Robert Brandenberger and Evan McDonough.
+  Hi! I'm Guillaume, a graduate student in physics at McGill University. I'm completing a Master's degree under the supervision of Robert Brandenberger and Evan McDonough.
 
   I'm interested in the intersection of high-energy theoretical physics and cosmology/astrophysics. I'm also interested in machine learning and its applications to physics.
 
@@ -114,7 +114,7 @@ about_content: | # this will include new lines to allow paragraphs
 #       ![Trees](/modern-resume-theme/images/landscape-trees.jpg "Trees")
 
 # Footer
-footer_show_references: true
+footer_show_references: false
 # references_title: References on request (Override references text)
 
 # Build settings
