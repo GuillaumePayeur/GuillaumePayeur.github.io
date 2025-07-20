@@ -50,7 +50,7 @@ about_profile_image: images/profile.jpg
 about_content: | # this will include new lines to allow paragraphs
   Hi! I'm Guillaume, a PhD student in physics at the Université de Montréal. I work under the supervision of Laurence Perreault-Levasseur. Previously, I received my Master's degree from McGill University, where I worked under the supervision of Robert Brandenberger and Evan McDonough.
 
-  I'm interested in the application of machine learning methods to cosmology and astrophysics. I'm also interested in the interesection of cosmology and high-energy theoretical physics.
+  I'm interested in the application of machine learning methods to cosmology and astrophysics. I'm also interested in the intersection of cosmology and high-energy theoretical physics.
 
   Find here my [research papers](https://inspirehep.net/authors/2513563?ui-citation-summary=true) and my [CV](CV.pdf).
 
