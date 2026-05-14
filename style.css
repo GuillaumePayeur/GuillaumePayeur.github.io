@@ -1,0 +1,237 @@
+:root {
+    --bg-dark: rgba(10, 15, 25, 0.85);
+    --text-primary: #f0f0f0;
+    --text-secondary: #c0c0c0;
+    --accent-blue: #4da6ff;
+    --accent-orange: #ff9933;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text-primary);
+    background-image: url('pictures/background.jpg');
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    scroll-behavior: smooth;
+}
+
+/* Navigation Bar */
+nav {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 2.5rem;
+    padding: 1.2rem;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+    border-bottom: 1px solid rgba(77, 166, 255, 0.15);
+}
+
+nav a {
+    color: var(--accent-blue);
+    text-decoration: none;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    transition: color 0.3s ease;
+}
+
+nav a:hover {
+    color: var(--accent-orange);
+}
+
+/* Main Container */
+.container {
+    max-width: 900px;
+    margin: 100px auto 4rem;
+    padding: 0 20px;
+}
+
+/* Sections - The floating boxes */
+.section-box {
+    background: var(--bg-dark);
+    border-radius: 12px;
+    padding: 3rem;
+    margin-bottom: 3rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 153, 51, 0.1);
+    backdrop-filter: blur(4px);
+}
+
+h1, h2, h3 {
+    margin-top: 0;
+}
+
+h1 {
+    color: var(--text-primary);
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+h2 {
+    color: var(--accent-blue);
+    border-bottom: 2px solid rgba(77, 166, 255, 0.2);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+h3 {
+    color: var(--accent-orange);
+}
+
+/* Home Section Specifics */
+.intro-layout {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+}
+
+.profile-pic {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--accent-orange);
+    box-shadow: 0 0 20px rgba(255, 153, 51, 0.3);
+}
+
+.intro-text {
+    flex: 1;
+}
+
+.intro-text p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+/* Social Icons */
+.social-links {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 1.5rem;
+}
+
+.social-links a {
+    color: var(--accent-blue);
+    font-size: 1.8rem;
+    transition: transform 0.2s, color 0.3s;
+}
+
+.social-links a:hover {
+    color: var(--accent-orange);
+    transform: translateY(-3px);
+}
+
+/* Research Section */
+.publication {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+    background: rgba(255,255,255,0.03);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.publication:last-child {
+    margin-bottom: 0;
+}
+
+.pub-img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #222; /* Placeholder background */
+}
+
+.pub-content {
+    flex: 1;
+}
+
+.pub-content h3 {
+    margin-bottom: 0.5rem;
+}
+
+.pub-content p {
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.pub-link {
+    display: inline-block;
+    color: var(--accent-orange);
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.95rem;
+    border: 1px solid var(--accent-orange);
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.pub-link:hover {
+    background: var(--accent-orange);
+    color: #000;
+}
+
+/* Hobbies Section */
+.hobby-item {
+    margin-bottom: 3rem;
+}
+
+.hobby-item p {
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.hobby-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.hobby-img-container {
+    text-align: center;
+}
+
+.hobby-img-container img {
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    margin-bottom: 0.5rem;
+}
+
+.hobby-caption {
+    font-size: 0.9rem;
+    color: var(--accent-blue);
+    font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .intro-layout {
+        flex-direction: column;
+        text-align: center;
+    }
+    .social-links {
+        justify-content: center;
+    }
+    .publication {
+        flex-direction: column;
+    }
+    .pub-img {
+        width: 100%;
+        height: 200px;
+    }
+}
