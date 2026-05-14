@@ -112,6 +112,16 @@ h3 {
     color: var(--text-secondary);
 }
 
+.intro-text p a {
+    color: var(--accent-blue);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.intro-text p a:hover {
+    color: var(--accent-orange);
+}
+
 /* Social Icons */
 .social-links {
     margin-top: 1.5rem;
