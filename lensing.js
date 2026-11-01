@@ -86,10 +86,9 @@
   let width = 0;
   let height = 0;
   let dpr = 1;
-  let sourcePosition = { x: 0.44, y: -0.32 };
+  let sourcePosition = { x: 0.2, y: -0.1 };
   let targetSourcePosition = { x: 0, y: 0 };
   let pointerInsideStage = false;
-  let canvasVisible = true;
   let stageMessage = "";
 
   function hash(value) {
@@ -138,8 +137,8 @@
   stage.addEventListener("pointerleave", () => {
     pointerInsideStage = false;
     if (prefersReducedMotion) {
-      targetSourcePosition.x = 0.44;
-      targetSourcePosition.y = -0.32;
+      targetSourcePosition.x = 0.2;
+      targetSourcePosition.y = -0.1;
       sourcePosition.x = targetSourcePosition.x;
       sourcePosition.y = targetSourcePosition.y;
       requestAnimationFrame(() => render(0));
@@ -150,13 +149,6 @@
     new ResizeObserver(resizeCanvas).observe(stage);
   } else {
     window.addEventListener("resize", resizeCanvas);
-  }
-
-  if ("IntersectionObserver" in window) {
-    const canvasObserver = new IntersectionObserver((entries) => {
-      canvasVisible = entries[0].isIntersecting;
-    });
-    canvasObserver.observe(stage);
   }
 
   function drawBackground(time) {
@@ -376,13 +368,13 @@
   }
 
   function render(time = 0) {
-    if (canvasVisible || prefersReducedMotion) {
+    if (width > 0 && height > 0) {
       if (!pointerInsideStage) {
-        targetSourcePosition.x = Math.sin(time * 0.00019) * 0.78;
-        targetSourcePosition.y = Math.sin(time * 0.00031) * 0.58;
+        targetSourcePosition.x = Math.sin(time * 0.00022) * 0.28;
+        targetSourcePosition.y = Math.sin(time * 0.00031) * 0.18;
       }
 
-      const followSpeed = pointerInsideStage ? 0.12 : 0.018;
+      const followSpeed = pointerInsideStage ? 0.12 : 0.035;
       sourcePosition.x += (targetSourcePosition.x - sourcePosition.x) * followSpeed;
       sourcePosition.y += (targetSourcePosition.y - sourcePosition.y) * followSpeed;
 
