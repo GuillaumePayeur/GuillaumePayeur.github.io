@@ -75,6 +75,16 @@
   const stage = document.querySelector(".lens-stage");
   const stageInstruction = stage.querySelector(".stage-instruction");
   const context = canvas.getContext("2d");
+  // One galaxy portrait supplies both the source and its distorted images.
+  const galaxyPortrait = createGalaxyPortrait();
+  const sourceTexture = document.createElement("canvas");
+  sourceTexture.width = galaxyPortrait.width;
+  sourceTexture.height = galaxyPortrait.height;
+  const sourceTextureContext = sourceTexture.getContext("2d", { willReadFrequently: true });
+  const arcLayer = document.createElement("canvas");
+  const arcContext = arcLayer.getContext("2d");
+  let arcPixels;
+  let arcSamples = [];
   const stars = Array.from({ length: 95 }, (_, index) => ({
     x: hash(index * 1.73),
     y: hash(index * 3.11 + 4),
@@ -104,6 +114,70 @@
     return amount * amount * (3 - 2 * amount);
   }
 
+  function createGalaxyPortrait() {
+    const portrait = document.createElement("canvas");
+    portrait.width = 256;
+    portrait.height = 256;
+    const paint = portrait.getContext("2d");
+    paint.translate(128, 128);
+    paint.rotate(0.38);
+    paint.scale(1, 0.7);
+
+    function glow(x, y, radius, color, alpha) {
+      const gradient = paint.createRadialGradient(x, y, 0, x, y, radius);
+      gradient.addColorStop(0, `rgba(${color}, ${alpha})`);
+      gradient.addColorStop(0.35, `rgba(${color}, ${alpha * 0.48})`);
+      gradient.addColorStop(1, `rgba(${color}, 0)`);
+      paint.fillStyle = gradient;
+      paint.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+    }
+
+    glow(0, 0, 110, "45, 114, 217", 0.55);
+    glow(0, 0, 80, "65, 132, 218", 0.4);
+    // Broad, irregular arms rather than outlines: these become the arc texture.
+    for (let arm = 0; arm < 2; arm += 1) {
+      for (let step = 0; step < 100; step += 1) {
+        const fraction = step / 99;
+        const angle = arm * Math.PI + fraction * 5.2;
+        const radius = 14 + fraction * 78;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        glow(x, y, 9 + fraction * 4, "75, 166, 255", 0.08 + (1 - fraction) * 0.05);
+      }
+    }
+
+    // The deterministic clumps repeat in every image of this same source.
+    for (let index = 0; index < 70; index += 1) {
+      const fraction = hash(index * 3.71 + 6);
+      const angle = (index % 2) * Math.PI + fraction * 5.2;
+      const radius = 14 + fraction * 78;
+      const x = Math.cos(angle) * radius + (hash(index + 2) - 0.5) * 12;
+      const y = Math.sin(angle) * radius + (hash(index + 8) - 0.5) * 12;
+      glow(x, y, 1.4 + hash(index + 15) * 4, "141, 213, 255", 0.25 + hash(index + 5) * 0.45);
+    }
+
+    // Three unequal star-forming regions make the repeated morphology legible.
+    glow(52, 29, 19, "170, 225, 255", 0.98);
+    glow(52, 29, 8, "235, 249, 255", 1);
+    glow(-42, -40, 12, "114, 178, 255", 0.95);
+    glow(-42, -40, 6, "211, 234, 255", 1);
+    glow(-57, 42, 10, "184, 178, 255", 0.82);
+    glow(0, 0, 40, "129, 201, 255", 0.95);
+    glow(0, 0, 23, "230, 246, 255", 1);
+    glow(0, 0, 10, "255, 254, 247", 1);
+    return portrait;
+  }
+
+  function updateSourceTexture(time) {
+    const size = sourceTexture.width;
+    sourceTextureContext.clearRect(0, 0, size, size);
+    sourceTextureContext.save();
+    sourceTextureContext.translate(size / 2, size / 2);
+    sourceTextureContext.rotate(time * 0.00006);
+    sourceTextureContext.drawImage(galaxyPortrait, -size / 2, -size / 2);
+    sourceTextureContext.restore();
+  }
+
   function resizeCanvas() {
     const bounds = stage.getBoundingClientRect();
     width = bounds.width;
@@ -114,6 +188,27 @@
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Cache the inverse polar map for just the annulus where images can occur.
+    // A bounded raster keeps the cost predictable on phones and high-DPI screens.
+    const resolution = Math.min(480, Math.max(280, Math.round(Math.min(width, height) * dpr)));
+    arcLayer.width = resolution;
+    arcLayer.height = resolution;
+    arcPixels = arcContext.createImageData(resolution, resolution);
+    arcSamples = [];
+    const rotationCosine = Math.cos(0.08);
+    const rotationSine = Math.sin(0.08);
+    for (let y = 0; y < resolution; y += 1) {
+      for (let x = 0; x < resolution; x += 1) {
+        const offsetX = (x + 0.5) / resolution - 0.5;
+        const offsetY = (y + 0.5) / resolution - 0.5;
+        const localX = offsetX * rotationCosine - offsetY * rotationSine;
+        const localY = (offsetX * rotationSine + offsetY * rotationCosine) / 0.88;
+        const radius = Math.hypot(localX, localY);
+        if (radius > 0.13 && radius < 0.45) {
+          arcSamples.push({ index: (y * resolution + x) * 4, radius, angle: Math.atan2(localY, localX) });
+        }
+      }
+    }
     if (prefersReducedMotion && width > 0 && height > 0) {
       requestAnimationFrame(() => render(0));
     }
@@ -177,80 +272,67 @@
     });
   }
 
-  function drawSourceGalaxy(time, sourceX, sourceY, scale, opacity) {
-    const radius = scale * 0.055;
-    const sourceGlow = context.createRadialGradient(sourceX, sourceY, 0, sourceX, sourceY, scale * 0.115);
-    sourceGlow.addColorStop(0, `rgba(220, 247, 255, ${0.92 * opacity})`);
-    sourceGlow.addColorStop(0.16, `rgba(113, 201, 255, ${0.78 * opacity})`);
-    sourceGlow.addColorStop(0.52, `rgba(23, 105, 194, ${0.3 * opacity})`);
-    sourceGlow.addColorStop(1, "rgba(23, 105, 194, 0)");
-    context.fillStyle = sourceGlow;
-    context.beginPath();
-    context.arc(sourceX, sourceY, scale * 0.115, 0, Math.PI * 2);
-    context.fill();
-
+  function drawSourceGalaxy(sourceX, sourceY, scale, opacity) {
+    const size = scale * 0.17;
     context.save();
     context.globalAlpha = opacity;
-    context.translate(sourceX, sourceY);
-    context.rotate(0.38 + time * 0.00006);
-    context.scale(1, 0.58);
-
-    const galaxyBody = context.createRadialGradient(-radius * 0.12, -radius * 0.08, 0, 0, 0, radius);
-    galaxyBody.addColorStop(0, "rgba(238, 252, 255, 1)");
-    galaxyBody.addColorStop(0.18, "rgba(142, 218, 255, 0.94)");
-    galaxyBody.addColorStop(0.6, "rgba(50, 136, 221, 0.48)");
-    galaxyBody.addColorStop(1, "rgba(23, 105, 194, 0)");
-    context.fillStyle = galaxyBody;
-    context.beginPath();
-    context.arc(0, 0, radius, 0, Math.PI * 2);
-    context.fill();
-
-    context.lineCap = "round";
-    context.lineWidth = Math.max(0.8, scale * 0.0022);
-    context.shadowColor = "rgba(113, 201, 255, 0.8)";
-    context.shadowBlur = scale * 0.012;
-    for (let arm = 0; arm < 2; arm += 1) {
-      context.beginPath();
-      for (let step = 0; step <= 38; step += 1) {
-        const angle = arm * Math.PI + step * 0.17;
-        const armRadius = radius * (0.12 + (step / 38) * 0.84);
-        const x = Math.cos(angle) * armRadius;
-        const y = Math.sin(angle) * armRadius;
-        if (step === 0) context.moveTo(x, y);
-        else context.lineTo(x, y);
-      }
-      context.strokeStyle = "rgba(207, 241, 255, 0.72)";
-      context.stroke();
-    }
-
-    context.shadowBlur = scale * 0.018;
-    context.fillStyle = "rgba(240, 252, 255, 0.95)";
-    context.beginPath();
-    context.arc(0, 0, radius * 0.13, 0, Math.PI * 2);
-    context.fill();
+    context.drawImage(sourceTexture, sourceX - size / 2, sourceY - size / 2, size, size);
     context.restore();
   }
 
-  function strokeLensedArc(radiusX, radiusY, angle, halfSpan, width, opacity, scale) {
-    if (opacity <= 0.005) return;
-
+  function drawSourceReference(scale) {
+    // A small unwarped reference makes the matching knots easy to compare even
+    // while the moving source itself is hidden behind the foreground light.
+    const size = scale * 0.15;
+    const x = Math.max(scale * 0.055, 55 - size / 2);
+    const y = scale * 0.115;
+    context.drawImage(sourceTexture, x, y, size, size);
     context.save();
-    context.shadowColor = "rgba(69, 174, 255, 0.98)";
-    context.shadowBlur = scale * 0.05;
-    context.strokeStyle = `rgba(113, 201, 255, ${opacity})`;
-    context.lineWidth = width;
-    context.lineCap = "round";
-    context.beginPath();
-    context.ellipse(0, 0, radiusX, radiusY, -0.08, angle - halfSpan, angle + halfSpan);
-    context.stroke();
-
-    context.shadowBlur = scale * 0.012;
-    context.strokeStyle = `rgba(226, 248, 255, ${Math.min(1, opacity + 0.12)})`;
-    context.lineWidth = Math.max(0.85, width * 0.16);
-    context.beginPath();
-    context.ellipse(0, 0, radiusX, radiusY, -0.08, angle - halfSpan, angle + halfSpan);
-    context.stroke();
+    context.font = '12px "DM Sans", sans-serif';
+    context.fillStyle = "rgba(190, 220, 255, 0.7)";
+    context.textAlign = "center";
+    context.fillText("Unlensed source", x + size / 2, y + size + 9);
     context.restore();
+  }
+
+  function drawWarpedGalaxy(texture, radius, angle, halfSpan, thickness, opacity, mirrored) {
+    if (opacity <= 0.005) return;
+    const size = sourceTexture.width;
+    const output = arcPixels.data;
+    const parity = mirrored ? -1 : 1;
+
+    // Look up each image pixel in the shared source portrait. Bilinear sampling
+    // preserves its knots and arms without seams between stretched strips.
+    for (const sample of arcSamples) {
+      const sourceY = (0.5 + ((sample.radius - radius) / thickness) * parity) * (size - 1);
+      if (sourceY < 0 || sourceY >= size - 1) continue;
+      let delta = sample.angle - angle;
+      delta -= Math.round(delta / (Math.PI * 2)) * Math.PI * 2;
+      if (Math.abs(delta) >= halfSpan) continue;
+      const sourceX = (0.5 + delta / (halfSpan * 2)) * (size - 1);
+      const x = Math.floor(sourceX);
+      const y = Math.floor(sourceY);
+      const fractionX = sourceX - x;
+      const fractionY = sourceY - y;
+      const topLeft = (y * size + x) * 4;
+      const bottomLeft = topLeft + size * 4;
+      const weightA = (1 - fractionX) * (1 - fractionY);
+      const weightB = fractionX * (1 - fractionY);
+      const weightC = (1 - fractionX) * fractionY;
+      const weightD = fractionX * fractionY;
+      const alpha = (texture[topLeft + 3] * weightA + texture[topLeft + 7] * weightB
+        + texture[bottomLeft + 3] * weightC + texture[bottomLeft + 7] * weightD) / 255 * opacity;
+      if (alpha < 0.003) continue;
+      const index = sample.index;
+      const existingAlpha = output[index + 3] / 255;
+      const combinedAlpha = alpha + existingAlpha * (1 - alpha);
+      for (let channel = 0; channel < 3; channel += 1) {
+        const color = texture[topLeft + channel] * weightA + texture[topLeft + 4 + channel] * weightB
+          + texture[bottomLeft + channel] * weightC + texture[bottomLeft + 4 + channel] * weightD;
+        output[index + channel] = (color * alpha + output[index + channel] * existingAlpha * (1 - alpha)) / combinedAlpha;
+      }
+      output[index + 3] = combinedAlpha * 255;
+    }
   }
 
   function drawLensedImages(centerX, centerY, scale, sourceOffsetX, sourceOffsetY, alignment) {
@@ -261,47 +343,23 @@
     const ringBlend = 1 - smoothstep(scale * 0.018, scale * 0.075, separation);
     const lensingStrength = smoothstep(0.08, 1, alignment);
     const sourceAngle = separation > 0.01 ? Math.atan2(sourceOffsetY / 0.88, sourceOffsetX) : 0;
+    const halfSpan = (0.55 + lensingStrength * 1.5) * (1 - ringBlend) + 2.8 * ringBlend;
+    const outerRadius = (einsteinRadius + separation * 0.22 * (1 - ringBlend)) / scale;
+    const innerRadius = (einsteinRadius - separation * 0.18 * (1 - ringBlend)) / scale;
+    const thickness = 0.11 + lensingStrength * 0.08;
 
+    arcPixels.data.fill(0);
+    const texture = sourceTextureContext.getImageData(0, 0, sourceTexture.width, sourceTexture.height).data;
+    drawWarpedGalaxy(texture, outerRadius, sourceAngle, halfSpan, thickness, lensingStrength, false);
+    drawWarpedGalaxy(texture, innerRadius, sourceAngle + Math.PI, halfSpan, thickness * 0.88,
+      lensingStrength * (0.68 + ringBlend * 0.25), true);
+    arcContext.putImageData(arcPixels, 0, 0);
+
+    // Glow is applied once to the completed images; no white stroke obscures them.
     context.save();
-    context.translate(centerX, centerY);
-
-    if (ringBlend > 0.005) {
-      strokeLensedArc(
-        einsteinRadius,
-        einsteinRadius * 0.88,
-        0,
-        Math.PI,
-        Math.max(3, scale * 0.014),
-        ringBlend * 0.94,
-        scale,
-      );
-    }
-
-    const arcOpacity = lensingStrength * (1 - ringBlend * 0.78);
-    const halfSpan = 0.2 + lensingStrength * 1.18;
-    const outerRadius = einsteinRadius + separation * 0.22;
-    const innerRadius = Math.max(einsteinRadius * 0.66, einsteinRadius - separation * 0.18);
-    const outerWidth = Math.max(2.2, scale * (0.007 + lensingStrength * 0.011));
-    const innerWidth = outerWidth * 0.76;
-
-    strokeLensedArc(
-      outerRadius,
-      outerRadius * 0.88,
-      sourceAngle,
-      halfSpan,
-      outerWidth,
-      arcOpacity * 0.96,
-      scale,
-    );
-    strokeLensedArc(
-      innerRadius,
-      innerRadius * 0.88,
-      sourceAngle + Math.PI,
-      halfSpan * 0.9,
-      innerWidth,
-      arcOpacity * (0.48 + lensingStrength * 0.42),
-      scale,
-    );
+    context.shadowColor = "rgba(65, 160, 255, 0.65)";
+    context.shadowBlur = scale * 0.018;
+    context.drawImage(arcLayer, centerX - scale / 2, centerY - scale / 2, scale, scale);
     context.restore();
   }
 
@@ -388,14 +446,16 @@
       const sourceY = centerY + sourceOffsetY;
       const separation = Math.hypot(sourceOffsetX, sourceOffsetY);
       const alignment = 1 - smoothstep(scale * 0.045, scale * 0.23, separation);
-      const sourceOpacity = Math.max(0.12, 1 - alignment * 0.86);
+      const sourceOpacity = Math.max(0.48, 1 - alignment * 0.52);
 
       context.clearRect(0, 0, width, height);
+      updateSourceTexture(time);
       drawBackground(time);
-      drawSourceGalaxy(time, sourceX, sourceY, scale, sourceOpacity);
+      drawSourceGalaxy(sourceX, sourceY, scale, sourceOpacity);
       drawContours(centerX, centerY, scale);
       drawLensedImages(centerX, centerY, scale, sourceOffsetX, sourceOffsetY, alignment);
       drawLens(time, centerX, centerY, scale);
+      drawSourceReference(scale);
       updateStageMessage(alignment, separation, scale);
     }
 
